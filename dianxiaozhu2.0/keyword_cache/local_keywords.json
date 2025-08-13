@@ -1,0 +1,72 @@
+{
+  "emergency": {
+    "keywords": [
+      "紧急",
+      "急",
+      "火灾",
+      "爆炸",
+      "事故"
+    ],
+    "category": "紧急事件",
+    "priority": 1,
+    "action": "immediate_forward",
+    "enabled": true,
+    "weight": 10
+  },
+  "power_outage": {
+    "keywords": [
+      "停电",
+      "断电",
+      "没电",
+      "跳闸",
+      "电力故障"
+    ],
+    "category": "电力故障",
+    "priority": 2,
+    "action": "forward_and_reply",
+    "enabled": true,
+    "weight": 8
+  },
+  "equipment_failure": {
+    "keywords": [
+      "故障",
+      "坏了",
+      "不工作",
+      "损坏",
+      "维修"
+    ],
+    "category": "设备故障",
+    "priority": 3,
+    "action": "forward",
+    "enabled": true,
+    "weight": 6
+  },
+  "service_request": {
+    "keywords": [
+      "报修",
+      "维护",
+      "检查",
+      "咨询",
+      "申请"
+    ],
+    "category": "服务请求",
+    "priority": 4,
+    "action": "auto_reply",
+    "enabled": true,
+    "weight": 4
+  },
+  "complaint": {
+    "keywords": [
+      "投诉",
+      "不满",
+      "问题",
+      "建议",
+      "意见"
+    ],
+    "category": "投诉建议",
+    "priority": 5,
+    "action": "log_and_reply",
+    "enabled": true,
+    "weight": 3
+  }
+}

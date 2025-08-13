@@ -25,8 +25,11 @@ docker-compose up -d elasticsearch kibana
 echo [3/4] 启动消息队列 (Zookeeper, Kafka, Kafka-UI)
 docker-compose up -d zookeeper kafka kafka-ui
 
-echo [4/4] 启动存储和代理 (Minio, Nginx)
-docker-compose up -d minio nginx
+echo [4/5] 启动存储服务 (Minio)
+docker-compose up -d minio
+
+echo [5/5] 启动后端服务和代理 (Backend, Nginx)
+docker-compose up -d backend nginx
 
 echo.
 echo ========================================
@@ -39,9 +42,10 @@ echo - Redis:          localhost:6379
 echo - Elasticsearch:  http://localhost:9200
 echo - Kibana:         http://localhost:5601
 echo - Kafka:          localhost:9092
-echo - Kafka UI:       http://localhost:8080
+echo - Kafka UI:       http://localhost:8081
 echo - Minio:          http://localhost:9001
-echo - Nginx:          http://localhost:80
+echo - 后端API:        http://localhost:8080
+echo - Nginx:          http://localhost:8088
 echo.
 echo 默认账号密码：
 echo - MySQL: dianxiaozhu/dianxiaozhu123

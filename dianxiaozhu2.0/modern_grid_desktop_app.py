@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 消息提示程序（微信联网版）
-功能：登录验证、微信消息监控、消息转发
+功能：登录验证、微信消息监控、消息转发、智能问答
 使用CustomTkinter实现现代化UI设计
 """
 
@@ -32,7 +32,17 @@ except ImportError:
     print("警告：无法导入微信监控模块，部分功能可能不可用")
     WeChatEnhanced = None
 
+# 导入智能问答和集成服务模块
+try:
+    from integrated_service import get_integrated_service, cleanup_integrated_service
+    from qa_service import get_qa_service, cleanup_qa_service
+    from keyword_manager import get_keyword_manager
+    from message_templates import get_template_manager
+except ImportError as e:
+    print(f"警告：无法导入智能服务模块，部分功能可能不可用: {e}")
+
 forward_manager = None
+integrated_service = None
 
 class ModernGridDesktopApp:
     def __init__(self):
@@ -64,7 +74,7 @@ class ModernGridDesktopApp:
         
         # 服务器配置
         self.server_host = "localhost"
-        self.server_port = "8000"
+        self.server_port = "8080"
         self.session = requests.Session()
         
         # 微信转发配置（简化版）
@@ -624,7 +634,7 @@ class ModernGridDesktopApp:
     def check_server_connection(self):
         """检查服务器连接"""
         try:
-            response = self.session.get(f"{self.server_url}/system/health", timeout=5)
+            response = self.session.get(f"{self.server_url}/api/system/health", timeout=5)
             if response.status_code == 200:
                 self.server_status.configure(text="服务器: 已连接", text_color="#2fa572")
                 return True
@@ -932,7 +942,7 @@ class ModernGridDesktopApp:
         try:
             # 方法1: 调用后端API发送微信消息
             response = self.session.post(
-                f"{self.server_url}/wx/send",
+                f"{self.server_url}/api/wx/send",
                 params={"message": message, "to": to},
                 timeout=10
             )
@@ -1019,7 +1029,7 @@ class ModernGridDesktopApp:
         try:
             # 方法1: 调用后端API发送微信消息
             response = self.session.post(
-                f"{self.server_url}/wx/send",
+                f"{self.server_url}/api/wx/send",
                 params={"message": message, "to": to},
                 timeout=10
             )

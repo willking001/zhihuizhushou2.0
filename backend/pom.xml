@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.2.5</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.dianxiaozhu</groupId>
+	<artifactId>dianxiaozhu-backend</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>dianxiaozhu-backend</name>
+	<description>电小助后端服务</description>
+
+
+
+	<properties>
+		<java.version>17</java.version>
+		<lombok.version>1.18.24</lombok.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+		<!-- MyBatis依赖 -->
+		<dependency>
+			<groupId>org.mybatis.spring.boot</groupId>
+			<artifactId>mybatis-spring-boot-starter</artifactId>
+			<version>3.0.3</version>
+		</dependency>
+		<!-- JPA依赖（其他模块仍在使用） -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-pool2</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.mysql</groupId>
+			<artifactId>mysql-connector-j</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>${lombok.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		
+		<!-- Flyway数据库迁移 -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-mysql</artifactId>
+		</dependency>
+		
+		<!-- NLP处理相关依赖 -->
+		<!-- HanLP中文分词 -->
+		<dependency>
+			<groupId>com.hankcs</groupId>
+			<artifactId>hanlp</artifactId>
+			<version>portable-1.8.4</version>
+		</dependency>
+		<!-- Ansj中文分词 -->
+		<dependency>
+			<groupId>org.ansj</groupId>
+			<artifactId>ansj_seg</artifactId>
+			<version>5.1.6</version>
+		</dependency>
+		<!-- 繁简体转换 -->
+		<dependency>
+			<groupId>com.github.houbb</groupId>
+			<artifactId>opencc4j</artifactId>
+			<version>1.7.2</version>
+		</dependency>
+		<!-- Apache Commons Lang -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.12.0</version>
+		</dependency>
+		<!-- Deeplearning4j用于深度学习模型 -->
+		<dependency>
+			<groupId>org.deeplearning4j</groupId>
+			<artifactId>deeplearning4j-core</artifactId>
+			<version>1.0.0-M2.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.nd4j</groupId>
+			<artifactId>nd4j-native-platform</artifactId>
+			<version>1.0.0-M2.1</version>
+		</dependency>
+		
+		<!-- SpringDoc OpenAPI 3.0 -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.2.0</version>
+		</dependency>
+	</dependencies>
+
+    <repositories>
+        <repository>
+            <id>aliyunmaven</id>
+            <name>Aliyun Maven</name>
+            <url>https://maven.aliyun.com/repository/public</url>
+        </repository>
+        <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
