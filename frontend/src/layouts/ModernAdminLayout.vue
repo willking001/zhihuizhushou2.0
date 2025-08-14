@@ -125,6 +125,35 @@
             
             <li class="nav-item">
               <div class="nav-group">
+                <div @click="toggleGroup('groups')" class="nav-link nav-group__header">
+                  <div class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2zM4 18v-1c0-2.66 5.33-4 8-4s8 1.34 8 4v1H4zM12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z"/>
+                    </svg>
+                  </div>
+                  <transition name="fade">
+                    <span v-show="!isCollapsed" class="nav-text">群组管理</span>
+                  </transition>
+                  <transition name="fade">
+                    <div v-show="!isCollapsed" class="nav-arrow" :class="{ 'nav-arrow--expanded': expandedGroups.includes('groups') }">
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                      </svg>
+                    </div>
+                  </transition>
+                </div>
+                <transition name="slide-down">
+                  <ul v-show="expandedGroups.includes('groups') && !isCollapsed" class="nav-submenu">
+                    <li><router-link to="/groups/management" class="nav-sublink">群组管理</router-link></li>
+                    <li><router-link to="/groups/statistics" class="nav-sublink">群组统计</router-link></li>
+                    <li><router-link to="/groups/settings" class="nav-sublink">群组设置</router-link></li>
+                  </ul>
+                </transition>
+              </div>
+            </li>
+            
+            <li class="nav-item">
+              <div class="nav-group">
                 <div @click="toggleGroup('nlp')" class="nav-link nav-group__header">
                   <div class="nav-icon">
                     <svg viewBox="0 0 24 24" fill="currentColor">
@@ -154,45 +183,34 @@
         </div>
 
         <div class="nav-section">
-          <div v-show="!isCollapsed" class="nav-section__title">系统管理</div>
           <ul class="nav-menu">
             <li class="nav-item">
-              <router-link to="/system/config" class="nav-link">
-                <div class="nav-icon">
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
-                  </svg>
+              <div class="nav-group">
+                <div @click="toggleGroup('system')" class="nav-link nav-group__header">
+                  <div class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                    </svg>
+                  </div>
+                  <transition name="fade">
+                    <span v-show="!isCollapsed" class="nav-text">系统管理</span>
+                  </transition>
+                  <transition name="fade">
+                    <div v-show="!isCollapsed" class="nav-arrow" :class="{ 'nav-arrow--expanded': expandedGroups.includes('system') }">
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                      </svg>
+                    </div>
+                  </transition>
                 </div>
-                <transition name="fade">
-                  <span v-show="!isCollapsed" class="nav-text">系统配置</span>
+                <transition name="slide-down">
+                  <ul v-show="expandedGroups.includes('system') && !isCollapsed" class="nav-submenu">
+                    <li><router-link to="/system/config" class="nav-sublink">系统配置</router-link></li>
+                    <li><router-link to="/system/monitor" class="nav-sublink">系统监控</router-link></li>
+                    <li><router-link to="/system/logs" class="nav-sublink">系统日志</router-link></li>
+                  </ul>
                 </transition>
-              </router-link>
-            </li>
-            
-            <li class="nav-item">
-              <router-link to="/system/monitor" class="nav-link">
-                <div class="nav-icon">
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zm-8-2h2v-4h-2v4zm0-6h2V7h-2v4z"/>
-                  </svg>
-                </div>
-                <transition name="fade">
-                  <span v-show="!isCollapsed" class="nav-text">系统监控</span>
-                </transition>
-              </router-link>
-            </li>
-            
-            <li class="nav-item">
-              <router-link to="/system/logs" class="nav-link">
-                <div class="nav-icon">
-                  <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
-                  </svg>
-                </div>
-                <transition name="fade">
-                  <span v-show="!isCollapsed" class="nav-text">系统日志</span>
-                </transition>
-              </router-link>
+              </div>
             </li>
           </ul>
         </div>
@@ -307,7 +325,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const isCollapsed = ref(false)
-const expandedGroups = ref(['messages', 'users', 'keywords', 'nlp'])
+const expandedGroups = ref([])
 const showUserMenu = ref(false)
 
 const currentPageTitle = computed(() => {

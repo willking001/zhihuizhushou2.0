@@ -17,6 +17,7 @@ export interface User {
   username: string
   email: string
   phone?: string
+  wechatName?: string  // 微信名，用于网格员通知
   role: string
   status: 'active' | 'inactive' | 'banned'
   createdAt: string

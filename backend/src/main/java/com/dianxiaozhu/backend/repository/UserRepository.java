@@ -32,6 +32,11 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     List<User> findByStatus(User.UserStatus status);
     
     /**
+     * 根据角色查找用户
+     */
+    List<User> findByRole(String role);
+    
+    /**
      * 查找活跃用户
      */
     @Query("SELECT u FROM User u WHERE u.status = :status")

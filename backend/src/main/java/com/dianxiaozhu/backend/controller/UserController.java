@@ -175,6 +175,9 @@ public class UserController {
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
+        dto.setWechatName(user.getWechatName());
+        dto.setRealName(user.getRealName());
+        dto.setGridArea(user.getGridArea());
         dto.setRole(user.getRole());
         dto.setStatus(user.getStatus().name().toLowerCase());
         dto.setCreatedAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null);
@@ -190,6 +193,9 @@ public class UserController {
         user.setUsername(dto.getUsername());
         user.setEmail(dto.getEmail());
         user.setPhone(dto.getPhone());
+        user.setWechatName(dto.getWechatName());
+        user.setRealName(dto.getRealName());
+        user.setGridArea(dto.getGridArea());
         user.setRole(dto.getRole());
         if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
             user.setPassword(userService.encryptPassword(dto.getPassword()));
@@ -212,6 +218,15 @@ public class UserController {
         }
         if (dto.getPhone() != null) {
             user.setPhone(dto.getPhone());
+        }
+        if (dto.getWechatName() != null) {
+            user.setWechatName(dto.getWechatName());
+        }
+        if (dto.getRealName() != null) {
+            user.setRealName(dto.getRealName());
+        }
+        if (dto.getGridArea() != null) {
+            user.setGridArea(dto.getGridArea());
         }
         if (dto.getRole() != null) {
             user.setRole(dto.getRole());

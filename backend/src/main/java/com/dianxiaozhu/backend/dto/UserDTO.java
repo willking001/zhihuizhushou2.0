@@ -8,6 +8,9 @@ public class UserDTO implements Serializable {
     private String password;
     private String email;
     private String phone;
+    private String wechatName;  // 微信名，用于网格员通知
+    private String realName;    // 真实姓名
+    private String gridArea;    // 网格区域
     private String role;
     private String status;
     private String createdAt;
@@ -54,6 +57,30 @@ public class UserDTO implements Serializable {
     
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+    
+    public String getWechatName() {
+        return wechatName;
+    }
+    
+    public void setWechatName(String wechatName) {
+        this.wechatName = wechatName;
+    }
+    
+    public String getRealName() {
+        return realName;
+    }
+    
+    public void setRealName(String realName) {
+        this.realName = realName;
+    }
+    
+    public String getGridArea() {
+        return gridArea;
+    }
+    
+    public void setGridArea(String gridArea) {
+        this.gridArea = gridArea;
     }
     
     public String getRole() {

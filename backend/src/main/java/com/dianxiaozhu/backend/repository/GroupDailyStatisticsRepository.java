@@ -94,8 +94,8 @@ public interface GroupDailyStatisticsRepository extends JpaRepository<GroupDaily
            "WHERE g.statDate BETWEEN :startDate AND :endDate " +
            "AND g.messageCount > :minMessages " +
            "GROUP BY g.chatRoom " +
-           "HAVING (SUM(g.manualTakeoverCount) * 100.0 / SUM(g.messageCount)) > :threshold " +
-           "ORDER BY (SUM(g.manualTakeoverCount) * 100.0 / SUM(g.messageCount)) DESC")
+           "HAVING SUM(g.manualTakeoverCount) * 100.0 / SUM(g.messageCount) > :threshold " +
+           "ORDER BY SUM(g.manualTakeoverCount) * 100.0 / SUM(g.messageCount) DESC")
     List<Object[]> findAbnormalGroups(@Param("startDate") LocalDate startDate, 
                                      @Param("endDate") LocalDate endDate,
                                      @Param("minMessages") Integer minMessages,
@@ -104,7 +104,12 @@ public interface GroupDailyStatisticsRepository extends JpaRepository<GroupDaily
     /**
      * 删除指定日期之前的历史数据
      */
-    void deleteByStatDateBefore(LocalDate date);
+    void deleteByStatDateBefore(LocalDate cutoffDate);
+    
+    /**
+     * 删除指定群组的所有统计数据
+     */
+    void deleteByChatRoom(String chatRoom);
 
     /**
      * 统计指定群组的总体表现

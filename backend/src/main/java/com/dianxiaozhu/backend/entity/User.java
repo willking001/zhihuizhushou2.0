@@ -43,6 +43,17 @@ public class User {
         return email;
     }
     
+    @Column(name = "wechat_name")
+    private String wechatName;  // 微信名，用于网格员通知
+
+    public String getWechatName() {
+        return wechatName;
+    }
+
+    public void setWechatName(String wechatName) {
+        this.wechatName = wechatName;
+    }
+    
     @Column
     private String role = "user";  // 默认为普通用户
     

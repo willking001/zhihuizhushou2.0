@@ -34,6 +34,12 @@ public interface GroupManagementStatusRepository extends JpaRepository<GroupMana
     List<GroupManagementStatus> findActiveGroups(@Param("since") LocalDateTime since);
 
     /**
+     * 统计活跃群组数量
+     */
+    @Query("SELECT COUNT(g) FROM GroupManagementStatus g WHERE g.lastActivityTime >= :since")
+    long countActiveGroups(@Param("since") LocalDateTime since);
+
+    /**
      * 统计各状态的群组数量
      */
     @Query("SELECT g.currentStatus, COUNT(g) FROM GroupManagementStatus g GROUP BY g.currentStatus")

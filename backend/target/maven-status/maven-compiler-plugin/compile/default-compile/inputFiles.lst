@@ -34,6 +34,7 @@ D:\zhihuizhushou2.0\backend\src\main\java\com\dianxiaozhu\backend\repository\Mes
 D:\zhihuizhushou2.0\backend\src\main\java\com\dianxiaozhu\backend\repository\BusinessRuleRepository.java
 D:\zhihuizhushou2.0\backend\src\main\java\com\dianxiaozhu\backend\controller\TemplateController.java
 D:\zhihuizhushou2.0\backend\src\main\java\com\dianxiaozhu\backend\service\KeywordCompatibilityService.java
+D:\zhihuizhushou2.0\backend\src\main\java\com\dianxiaozhu\backend\config\WebMvcConfig.java
 D:\zhihuizhushou2.0\backend\src\main\java\com\dianxiaozhu\backend\entity\RuleCondition.java
 D:\zhihuizhushou2.0\backend\src\main\java\com\dianxiaozhu\backend\mapper\KeywordConfigMapper.java
 D:\zhihuizhushou2.0\backend\src\main\java\com\dianxiaozhu\backend\service\MessageService.java

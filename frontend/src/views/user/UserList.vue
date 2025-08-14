@@ -136,6 +136,12 @@
                   <path d="M7 14l5-5 5 5z"/>
                 </svg>
               </th>
+              <th class="sortable" @click="sortBy('wechatName')">
+                微信名
+                <svg class="sort-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M7 14l5-5 5 5z"/>
+                </svg>
+              </th>
               <th>角色</th>
               <th>状态</th>
               <th class="sortable" @click="sortBy('lastLogin')">
@@ -171,6 +177,7 @@
               </td>
               <td class="email-col">{{ user.email }}</td>
               <td class="phone-col">{{ user.phone || '-' }}</td>
+              <td class="wechat-col">{{ user.wechatName || '-' }}</td>
               <td class="role-col">
                 <span class="role-badge" :class="user.role">
                   {{ getRoleText(user.role) }}

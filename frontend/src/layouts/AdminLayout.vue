@@ -7,6 +7,7 @@ import {
   Fold,
   Expand,
   User,
+  UserFilled,
   Setting,
   SwitchButton,
   Bell,
@@ -55,6 +56,16 @@ const menuItems = ref([
       { index: '/users/list', title: '用户列表' },
       { index: '/users/grid', title: '网格员管理' },
       { index: '/users/profile', title: '用户画像' }
+    ]
+  },
+  {
+    index: '/groups',
+    title: '群组管理',
+    icon: UserFilled,
+    children: [
+      { index: '/groups/management', title: '群组管理' },
+      { index: '/groups/statistics', title: '群组统计' },
+      { index: '/groups/settings', title: '群组设置' }
     ]
   },
   {

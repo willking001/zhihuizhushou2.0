@@ -72,6 +72,18 @@ public class GroupManagementStatus {
     private String takeoverBy;
 
     /**
+     * 分配的网格员ID
+     */
+    @Column(name = "grid_officer_id", length = 50)
+    private String gridOfficerId;
+
+    /**
+     * 群组分类
+     */
+    @Column(name = "group_category", length = 50)
+    private String groupCategory;
+
+    /**
      * 今日消息数
      */
     @Column(name = "message_count_today")

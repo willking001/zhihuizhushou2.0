@@ -30,6 +30,49 @@ public class GroupManagementController {
     private final GroupManagementService groupManagementService;
 
     /**
+     * 创建群组
+     */
+    @PostMapping("/groups")
+    @Operation(summary = "创建群组", description = "创建新的群组")
+    public ResponseEntity<Map<String, Object>> createGroup(
+            @RequestBody Map<String, Object> request) {
+        
+        try {
+            // 处理布尔类型的chatRoom
+            Object chatRoomObj = request.get("chatRoom");
+            String chatRoom = (chatRoomObj instanceof Boolean) ? 
+                              String.valueOf(chatRoomObj) : (String) chatRoomObj;
+            
+            String groupName = (String) request.get("groupName");
+            String groupDescription = (String) request.get("groupDescription");
+            String groupCategory = (String) request.get("groupCategory");
+            
+            // 处理可能是数字类型的gridOfficerId
+            Object gridOfficerIdObj = request.get("gridOfficerId");
+            String gridOfficerId = (gridOfficerIdObj instanceof Number) ? 
+                                   String.valueOf(gridOfficerIdObj) : (String) gridOfficerIdObj;
+            
+            String operator = (String) request.get("operator");
+            
+            GroupManagementStatus newGroup = groupManagementService.createGroup(
+                chatRoom, groupName, groupDescription, groupCategory, gridOfficerId, operator);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", newGroup);
+            response.put("message", "群组创建成功");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("创建群组失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "创建群组失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
      * 获取群组列表
      */
     @GetMapping("/groups")
@@ -348,6 +391,235 @@ public class GroupManagementController {
             Map<String, Object> response = new HashMap<>();
             response.put("success", false);
             response.put("message", "记录消息活动失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 获取群组设置
+     */
+    @GetMapping("/settings")
+    @Operation(summary = "获取群组设置", description = "获取全局群组设置配置")
+    public ResponseEntity<Map<String, Object>> getGroupSettings() {
+        try {
+            Map<String, Object> settings = groupManagementService.getGroupSettings();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", settings);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("获取群组设置失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "获取群组设置失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 更新群组设置
+     */
+    @PutMapping("/settings")
+    @Operation(summary = "更新群组设置", description = "更新全局群组设置配置")
+    public ResponseEntity<Map<String, Object>> updateGroupSettings(
+            @RequestBody Map<String, Object> settings) {
+        try {
+            Map<String, Object> updatedSettings = groupManagementService.updateGroupSettings(settings);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", updatedSettings);
+            response.put("message", "群组设置更新成功");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("更新群组设置失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "更新群组设置失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 获取群组统计概览
+     */
+    @GetMapping("/statistics/overview")
+    @Operation(summary = "获取群组统计概览", description = "获取群组管理的统计概览数据")
+    public ResponseEntity<Map<String, Object>> getStatisticsOverview(
+            @Parameter(description = "时间范围（天）") @RequestParam(defaultValue = "7") int days) {
+        try {
+            Map<String, Object> overview = groupManagementService.getStatisticsOverview(days);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", overview);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("获取群组统计概览失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "获取群组统计概览失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 获取群组活动排行
+     */
+    @GetMapping("/statistics/activity-ranking")
+    @Operation(summary = "获取群组活动排行", description = "获取群组活动排行数据")
+    public ResponseEntity<Map<String, Object>> getActivityRanking(
+            @Parameter(description = "时间范围（天）") @RequestParam(defaultValue = "7") int days,
+            @Parameter(description = "排行数量") @RequestParam(defaultValue = "10") int limit) {
+        try {
+            List<Map<String, Object>> ranking = groupManagementService.getActivityRanking(days, limit);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", ranking);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("获取群组活动排行失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "获取群组活动排行失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 删除群组
+     */
+    @DeleteMapping("/groups/{chatRoom}")
+    @Operation(summary = "删除群组", description = "删除指定的群组及其相关数据")
+    public ResponseEntity<Map<String, Object>> deleteGroup(
+            @Parameter(description = "群组标识") @PathVariable String chatRoom) {
+        
+        try {
+            boolean deleted = groupManagementService.deleteGroup(chatRoom);
+            
+            Map<String, Object> response = new HashMap<>();
+            if (deleted) {
+                response.put("success", true);
+                response.put("message", "群组删除成功");
+            } else {
+                response.put("success", false);
+                response.put("message", "群组不存在");
+            }
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("删除群组失败: {}", chatRoom, e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "删除群组失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+    
+    /**
+     * 获取关键词命中统计
+     */
+    @GetMapping("/statistics/keyword-hits")
+    @Operation(summary = "获取关键词命中统计", description = "获取关键词命中统计数据")
+    public ResponseEntity<Map<String, Object>> getKeywordHitStatistics(
+            @Parameter(description = "时间范围（天）") @RequestParam(defaultValue = "7") int days) {
+        try {
+            List<Map<String, Object>> keywordStats = groupManagementService.getKeywordHitStatistics(days);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", keywordStats);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("获取关键词命中统计失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "获取关键词命中统计失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 获取网格员列表
+     */
+    @GetMapping("/grid-officers")
+    @Operation(summary = "获取网格员列表", description = "获取所有网格员信息")
+    public ResponseEntity<Map<String, Object>> getGridOfficers() {
+        try {
+            List<Map<String, Object>> gridOfficers = groupManagementService.getGridOfficers();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", gridOfficers);
+            response.put("total", gridOfficers.size());
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("获取网格员列表失败", e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "获取网格员列表失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 分配网格员到群组
+     */
+    @PostMapping("/groups/{chatRoom}/assign-officer")
+    @Operation(summary = "分配网格员到群组", description = "为指定群组分配网格员")
+    public ResponseEntity<Map<String, Object>> assignGridOfficerToGroup(
+            @Parameter(description = "群组标识") @PathVariable String chatRoom,
+            @RequestBody Map<String, Object> request) {
+        try {
+            String officerId = (String) request.get("officerId");
+            String operator = (String) request.get("operator");
+            
+            groupManagementService.assignGridOfficerToGroup(chatRoom, officerId, operator);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "网格员分配成功");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("分配网格员到群组失败: {}", chatRoom, e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "分配网格员失败: " + e.getMessage());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    /**
+     * 更新群组配置
+     */
+    @PutMapping("/groups/{chatRoom}/config")
+    @Operation(summary = "更新群组配置", description = "更新指定群组的配置信息")
+    public ResponseEntity<Map<String, Object>> updateGroupConfig(
+            @Parameter(description = "群组标识") @PathVariable String chatRoom,
+            @RequestBody Map<String, Object> config) {
+        try {
+            Map<String, Object> updatedConfig = groupManagementService.updateGroupConfig(chatRoom, config);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", updatedConfig);
+            response.put("message", "群组配置更新成功");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("更新群组配置失败: {}", chatRoom, e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "更新群组配置失败: " + e.getMessage());
             return ResponseEntity.ok(response);
         }
     }

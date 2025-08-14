@@ -147,6 +147,33 @@ export const asyncRoutes: Array<RouteRecordRaw> = [
     ]
   },
   {
+    path: '/groups',
+    component: ModernAdminLayout,
+    redirect: '/groups/management',
+    name: 'Groups',
+    meta: { title: '群组管理', icon: 'group' },
+    children: [
+      {
+        path: 'management',
+        name: 'group-management',
+        component: () => import('../views/group/GroupManagement.vue'),
+        meta: { title: '群组管理' }
+      },
+      {
+        path: 'statistics',
+        name: 'group-statistics',
+        component: () => import('../views/group/GroupStatistics.vue'),
+        meta: { title: '群组统计' }
+      },
+      {
+        path: 'settings',
+        name: 'group-settings',
+        component: () => import('../views/group/GroupSettings.vue'),
+        meta: { title: '群组设置' }
+      }
+    ]
+  },
+  {
     path: '/system',
     component: ModernAdminLayout,
     redirect: '/system/config',

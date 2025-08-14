@@ -26,6 +26,10 @@
           <el-input v-model="form.phone" placeholder="请输入手机号码" />
         </el-form-item>
         
+        <el-form-item label="微信名" prop="wechatName">
+          <el-input v-model="form.wechatName" placeholder="请输入微信名（网格员专用）" />
+        </el-form-item>
+        
         <el-form-item label="角色" prop="role">
           <el-select v-model="form.role" placeholder="请选择角色" class="w-100">
             <el-option label="管理员" value="admin" />
@@ -106,6 +110,7 @@ const form = reactive({
   username: '',
   email: '',
   phone: '',
+  wechatName: '',
   role: 'user',
   status: 'active',
   password: '',
@@ -196,6 +201,7 @@ const resetForm = () => {
   form.username = ''
   form.email = ''
   form.phone = ''
+  form.wechatName = ''
   form.role = 'user'
   form.status = 'active'
   form.password = ''

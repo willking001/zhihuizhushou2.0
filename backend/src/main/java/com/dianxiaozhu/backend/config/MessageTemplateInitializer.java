@@ -44,7 +44,7 @@ public class MessageTemplateInitializer implements CommandLineRunner {
                 
                 logger.info("消息模板示例初始化完成");
             } else {
-                logger.info("已存在消息模板，跳过初始化");
+                logger.info("Message templates already exist, skipping initialization");
             }
         } catch (Exception e) {
             logger.error("初始化消息模板示例时发生错误: {}", e.getMessage(), e);

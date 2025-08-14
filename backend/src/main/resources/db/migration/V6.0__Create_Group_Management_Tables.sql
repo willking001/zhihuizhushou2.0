@@ -28,6 +28,7 @@ CREATE TABLE group_management_status (
     takeover_reason VARCHAR(500) COMMENT '最近接管原因',
     takeover_time DATETIME COMMENT '最近接管时间',
     takeover_by VARCHAR(50) COMMENT '接管人员',
+    grid_officer_id VARCHAR(50) COMMENT '分配的网格员ID',
     message_count_today INT DEFAULT 0 COMMENT '今日消息数',
     auto_reply_count_today INT DEFAULT 0 COMMENT '今日自动回复数',
     takeover_count_today INT DEFAULT 0 COMMENT '今日接管次数',
