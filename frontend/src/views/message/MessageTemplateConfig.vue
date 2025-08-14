@@ -82,16 +82,11 @@
               <div class="info-item">
                 <span class="info-label">关键词：</span>
                 <div class="keywords-list">
-                  <span v-for="(keyword, index) in template.keywords" :key="index" class="keyword-tag">
+                  <span v-if="template.keywords && template.keywords.length > 0" v-for="(keyword, index) in template.keywords" :key="index" class="keyword-tag">
                     {{ keyword }}
                   </span>
+                  <span v-else class="keyword-tag all-keywords">所有关键词</span>
                 </div>
-              </div>
-              <div class="info-item">
-                <span class="info-label">优先级：</span>
-                <span class="priority-badge" :class="getPriorityClass(template.priority)">
-                  {{ getPriorityText(template.priority) }}
-                </span>
               </div>
               <div class="info-item">
                 <span class="info-label">状态：</span>
@@ -103,10 +98,6 @@
           </div>
           <div class="template-card-footer">
             <div class="template-settings">
-              <div class="settings-item">
-                <span class="settings-label">消息头：</span>
-                <span class="settings-value">{{ template.header || '默认' }}</span>
-              </div>
               <div class="settings-item">
                 <span class="settings-label">附件处理：</span>
                 <span class="settings-value">{{ template.attachmentRule || '默认' }}</span>
@@ -208,11 +199,11 @@
             <label>模板类型</label>
             <div class="radio-group">
               <label class="radio-label">
-                <input type="radio" v-model="editingTemplateType" value="forward">
+                <input type="radio" v-model="editingTemplateType" value="forward" :disabled="isEditing">
                 <span>转发模板</span>
               </label>
               <label class="radio-label">
-                <input type="radio" v-model="editingTemplateType" value="reply">
+                <input type="radio" v-model="editingTemplateType" value="reply" :disabled="isEditing">
                 <span>回复模板</span>
               </label>
             </div>
@@ -238,33 +229,72 @@
           <!-- 转发模板特有字段 -->
           <template v-if="editingTemplateType === 'forward'">
             <div class="form-group">
-              <label>关键词</label>
-              <div class="tags-input">
-                <div class="tags-container">
-                  <span v-for="(keyword, index) in editingTemplate.keywords" :key="index" class="tag">
+              <label>关键词触发</label>
+              <div class="keyword-selector">
+                <!-- 已选关键词显示区域 -->
+                <div class="selected-keywords">
+                  <span v-for="(keyword, index) in editingTemplate.keywords" :key="keyword" class="keyword-tag">
                     {{ keyword }}
-                    <span class="tag-remove" @click="removeKeyword(index)">×</span>
+                    <button type="button" class="remove-keyword" @click="removeSelectedKeyword(index)">×</button>
+                  </span>
+                  <span v-if="editingTemplate.keywords.length === 0" class="placeholder-text">
+                    点击下方文本框选择关键词
                   </span>
                 </div>
-                <input 
-                  type="text" 
-                  v-model="newKeyword" 
-                  @keyup.enter="addKeyword" 
-                  placeholder="输入关键词并按回车添加"
-                >
+                
+                <!-- 关键词输入框 -->
+                <div class="keyword-input-container">
+                  <input 
+                    type="text" 
+                    class="keyword-input" 
+                    placeholder="点击选择关键词" 
+                    readonly 
+                    @click="showKeywordDropdown = !showKeywordDropdown"
+                    @focus="showKeywordDropdown = true"
+                  />
+                  <button type="button" class="dropdown-toggle" @click="showKeywordDropdown = !showKeywordDropdown">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M6 8L2 4h8l-4 4z"/>
+                    </svg>
+                  </button>
+                </div>
+                
+                <!-- 关键词下拉列表 -->
+                <div v-if="showKeywordDropdown" class="keyword-dropdown">
+                  <div class="dropdown-header">
+                    <span>可选关键词 ({{ availableKeywords.length }})</span>
+                    <button type="button" class="close-dropdown" @click="showKeywordDropdown = false">×</button>
+                  </div>
+                  <div class="dropdown-content">
+                    <div 
+                      v-for="keyword in availableKeywords" 
+                      :key="keyword.value" 
+                      class="keyword-item"
+                      :class="{ disabled: editingTemplate.keywords.includes(keyword.value) }"
+                      @click="selectKeyword(keyword.value)"
+                      @dblclick="selectKeyword(keyword.value)"
+                    >
+                      <span class="keyword-text">{{ keyword.label }}</span>
+                      <button 
+                        v-if="!editingTemplate.keywords.includes(keyword.value)"
+                        type="button" 
+                        class="add-keyword-btn"
+                        @click.stop="selectKeyword(keyword.value)"
+                      >
+                        添加
+                      </button>
+                      <span v-else class="already-selected">已选择</span>
+                    </div>
+                    <div v-if="availableKeywords.length === 0" class="no-keywords">
+                      暂无可用关键词
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="keyword-help-text">
+                  提示：不选择任何关键词时，模板将对所有关键词生效。当前可选关键词数量：{{ availableKeywords.length }}
+                </div>
               </div>
-            </div>
-            <div class="form-group">
-              <label>优先级</label>
-              <select v-model="editingTemplate.priority">
-                <option :value="1">高</option>
-                <option :value="2">中</option>
-                <option :value="3">低</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>消息头</label>
-              <input type="text" v-model="editingTemplate.header" placeholder="输入消息头格式">
             </div>
             <div class="form-group">
               <label>附件处理规则</label>
@@ -297,20 +327,71 @@
           <!-- 回复模板特有字段 -->
           <template v-if="editingTemplateType === 'reply'">
             <div class="form-group">
-              <label>触发条件</label>
-              <div class="tags-input">
-                <div class="tags-container">
-                  <span v-for="(condition, index) in editingTemplate.conditions" :key="index" class="tag">
-                    {{ condition }}
-                    <span class="tag-remove" @click="removeCondition(index)">×</span>
+              <label>关键词触发</label>
+              <div class="keyword-selector">
+                <!-- 已选关键词显示区域 -->
+                <div class="selected-keywords">
+                  <span v-for="(keyword, index) in editingTemplate.keywords" :key="keyword" class="keyword-tag">
+                    {{ keyword }}
+                    <button type="button" class="remove-keyword" @click="removeReplyKeyword(index)">×</button>
+                  </span>
+                  <span v-if="editingTemplate.keywords.length === 0" class="placeholder-text">
+                    点击下方文本框选择关键词
                   </span>
                 </div>
-                <input 
-                  type="text" 
-                  v-model="newCondition" 
-                  @keyup.enter="addCondition" 
-                  placeholder="输入触发条件并按回车添加"
-                >
+                
+                <!-- 关键词输入框 -->
+                <div class="keyword-input-container">
+                  <input 
+                    type="text" 
+                    class="keyword-input" 
+                    placeholder="点击选择关键词" 
+                    readonly 
+                    @click="showReplyKeywordDropdown = !showReplyKeywordDropdown"
+                    @focus="showReplyKeywordDropdown = true"
+                  />
+                  <button type="button" class="dropdown-toggle" @click="showReplyKeywordDropdown = !showReplyKeywordDropdown">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                      <path d="M6 8L2 4h8l-4 4z"/>
+                    </svg>
+                  </button>
+                </div>
+                
+                <!-- 关键词下拉列表 -->
+                <div v-if="showReplyKeywordDropdown" class="keyword-dropdown">
+                  <div class="dropdown-header">
+                    <span>可选关键词 ({{ availableKeywords.length }})</span>
+                    <button type="button" class="close-dropdown" @click="showReplyKeywordDropdown = false">×</button>
+                  </div>
+                  <div class="dropdown-content">
+                    <div 
+                      v-for="keyword in availableKeywords" 
+                      :key="keyword.value" 
+                      class="keyword-item"
+                      :class="{ disabled: editingTemplate.keywords.includes(keyword.value) }"
+                      @click="selectReplyKeyword(keyword.value)"
+                      @dblclick="selectReplyKeyword(keyword.value)"
+                    >
+                      <span class="keyword-text">{{ keyword.label }}</span>
+                      <button 
+                        v-if="!editingTemplate.keywords.includes(keyword.value)"
+                        type="button" 
+                        class="add-keyword-btn"
+                        @click.stop="selectReplyKeyword(keyword.value)"
+                      >
+                        添加
+                      </button>
+                      <span v-else class="already-selected">已选择</span>
+                    </div>
+                    <div v-if="availableKeywords.length === 0" class="no-keywords">
+                      暂无可用关键词
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="keyword-help-text">
+                  提示：不选择任何关键词时，模板将对所有关键词生效。当前可选关键词数量：{{ availableKeywords.length }}
+                </div>
               </div>
             </div>
           </template>
@@ -335,13 +416,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { getTemplateList, createTemplate, updateTemplate, deleteTemplate, exportTemplates, importTemplates, MessageTemplate } from '@/api/messageTemplate'
+import { getKeywordList } from '@/api/keyword'
 
 // 模板数据
 const forwardTemplates = ref<Record<string, MessageTemplate>>({})
 const replyTemplates = ref<Record<string, MessageTemplate>>({})
+
+// 关键词数据
+const keywordList = ref<Array<{id: number, keyword: string, enabled: boolean}>>([])
+const availableKeywords = ref<Array<{value: string, label: string}>>([])
 
 // 界面状态
 const activeTab = ref('forward')
@@ -349,8 +435,10 @@ const showAddDialog = ref(false)
 const isEditing = ref(false)
 const editingTemplateId = ref('')
 const editingTemplateType = ref('forward')
-const newKeyword = ref('')
 const newCondition = ref('')
+const showKeywordDropdown = ref(false)
+const showReplyKeywordDropdown = ref(false)
+const showConditionInput = ref(false)
 
 // 编辑中的模板
 const editingTemplate = reactive({
@@ -358,31 +446,46 @@ const editingTemplate = reactive({
   template: '',
   keywords: [] as string[],
   conditions: [] as string[],
-  priority: 2,
   enabled: true,
-  header: '',
   attachmentRule: 'include',
   dataMasking: false,
   maskingRules: [] as Array<{pattern: string, replacement: string}>
 })
 
-// 获取优先级文本
-const getPriorityText = (priority: number) => {
-  switch (priority) {
-    case 1: return '高'
-    case 2: return '中'
-    case 3: return '低'
-    default: return '未知'
-  }
-}
-
-// 获取优先级样式类
-const getPriorityClass = (priority: number) => {
-  switch (priority) {
-    case 1: return 'high'
-    case 2: return 'medium'
-    case 3: return 'low'
-    default: return ''
+// 获取关键词列表
+const fetchKeywords = async () => {
+  try {
+    const response = await getKeywordList({})
+    console.log('关键词API响应:', response)
+    
+    // 处理不同的响应格式
+    let keywords = []
+    if (response && response.keywords) {
+      // 直接返回 {keywords: [...]} 格式
+      keywords = response.keywords
+    } else if (response && response.success && response.keywords) {
+      // 返回 {success: true, keywords: [...]} 格式
+      keywords = response.keywords
+    } else if (response && Array.isArray(response)) {
+      // 直接返回数组格式
+      keywords = response
+    }
+    
+    keywordList.value = keywords
+    availableKeywords.value = keywords
+      .filter((keyword: any) => keyword.isActive)
+      .map((keyword: any) => ({
+        value: keyword.keyword,
+        label: keyword.keyword
+      }))
+    
+    console.log('处理后的关键词列表:', availableKeywords.value)
+    console.log('可用关键词数量:', availableKeywords.value.length)
+  } catch (error) {
+    console.error('获取关键词列表失败:', error)
+    ElMessage.error('获取关键词列表失败')
+    keywordList.value = []
+    availableKeywords.value = []
   }
 }
 
@@ -404,11 +507,9 @@ const editTemplate = (type: string, id: string) => {
       // @ts-ignore
       editingTemplate[key] = key === 'keywords' || key === 'conditions' || key === 'maskingRules' 
         ? [] 
-        : key === 'priority' 
-          ? 2 
-          : key === 'enabled' || key === 'dataMasking' 
-            ? false 
-            : ''
+        : key === 'enabled' || key === 'dataMasking' 
+          ? false 
+          : ''
     }
   })
   
@@ -453,18 +554,7 @@ const deleteTemplateHandler = (type: string, id: string) => {
   })
 }
 
-// 添加关键词
-const addKeyword = () => {
-  if (newKeyword.value.trim()) {
-    editingTemplate.keywords.push(newKeyword.value.trim())
-    newKeyword.value = ''
-  }
-}
 
-// 移除关键词
-const removeKeyword = (index: number) => {
-  editingTemplate.keywords.splice(index, 1)
-}
 
 // 添加触发条件
 const addCondition = () => {
@@ -491,6 +581,53 @@ const addMaskingRule = () => {
 const removeMaskingRule = (index: number) => {
   editingTemplate.maskingRules.splice(index, 1)
 }
+
+// 选择关键词
+const selectKeyword = (keywordValue: string) => {
+  if (!editingTemplate.keywords.includes(keywordValue)) {
+    editingTemplate.keywords.push(keywordValue)
+  }
+  // 选择后不关闭下拉框，允许继续选择
+}
+
+// 移除已选关键词
+const removeSelectedKeyword = (index: number) => {
+  editingTemplate.keywords.splice(index, 1)
+}
+
+// 选择回复模板关键词
+const selectReplyKeyword = (keywordValue: string) => {
+  if (!editingTemplate.keywords.includes(keywordValue)) {
+    editingTemplate.keywords.push(keywordValue)
+  }
+  // 选择后不关闭下拉框，允许继续选择
+}
+
+// 移除回复模板已选关键词
+const removeReplyKeyword = (index: number) => {
+  editingTemplate.keywords.splice(index, 1)
+}
+
+// 点击外部关闭下拉框
+const handleClickOutside = (event: Event) => {
+  const target = event.target as HTMLElement
+  const keywordSelector = target.closest('.keyword-selector')
+  const conditionSelector = target.closest('.condition-selector')
+  
+  if (!keywordSelector && showKeywordDropdown.value) {
+    showKeywordDropdown.value = false
+  }
+  
+  if (!keywordSelector && showReplyKeywordDropdown.value) {
+    showReplyKeywordDropdown.value = false
+  }
+  
+  if (!conditionSelector && showConditionInput.value) {
+    showConditionInput.value = false
+  }
+}
+
+
 
 // 插入变量
 const insertVariable = (variable: string) => {
@@ -544,10 +681,8 @@ const saveTemplate = () => {
     templateData = {
       name: editingTemplate.name,
       template: editingTemplate.template,
-      keywords: editingTemplate.keywords,
-      priority: editingTemplate.priority,
+      keywords: editingTemplate.keywords.length > 0 ? editingTemplate.keywords : [], // 空数组表示所有关键词
       enabled: editingTemplate.enabled,
-      header: editingTemplate.header,
       attachmentRule: editingTemplate.attachmentRule,
       dataMasking: editingTemplate.dataMasking,
       maskingRules: editingTemplate.dataMasking ? editingTemplate.maskingRules : []
@@ -689,9 +824,16 @@ const loadTemplates = () => {
     })
 }
 
-// 页面加载时获取模板数据
+// 页面加载时获取模板数据和关键词列表
 onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
   loadTemplates()
+  fetchKeywords()
+})
+
+// 组件卸载时清理事件监听器
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -1402,5 +1544,381 @@ onMounted(() => {
     width: 95%;
     max-height: 95vh;
   }
+}
+
+/* 关键词选择器样式 */
+.keyword-selector {
+  position: relative;
+  
+  .selected-keywords {
+    min-height: 40px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    
+    .keyword-tag {
+      display: inline-flex;
+      align-items: center;
+      background: #3b82f6;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      gap: 4px;
+      
+      .remove-keyword {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        padding: 0;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 2px;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      }
+    }
+    
+    .placeholder-text {
+      color: #9ca3af;
+      font-size: 14px;
+    }
+  }
+  
+  .keyword-input-container {
+    position: relative;
+    display: flex;
+    
+    .keyword-input {
+      flex: 1;
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      padding: 8px 32px 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      background: white;
+      
+      &:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+      }
+    }
+    
+    .dropdown-toggle {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #6b7280;
+      padding: 4px;
+      
+      &:hover {
+        color: #374151;
+      }
+    }
+  }
+  
+  .keyword-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 300px;
+    overflow: hidden;
+    
+    .dropdown-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e5e7eb;
+      font-weight: 500;
+      font-size: 14px;
+      
+      .close-dropdown {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        color: #6b7280;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        &:hover {
+          color: #374151;
+        }
+      }
+    }
+    
+    .dropdown-content {
+      max-height: 240px;
+      overflow-y: auto;
+      
+      .keyword-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #f3f4f6;
+        transition: background-color 0.2s;
+        
+        &:hover:not(.disabled) {
+          background: #f8f9fa;
+        }
+        
+        &.disabled {
+          background: #f9fafb;
+          cursor: not-allowed;
+          opacity: 0.6;
+        }
+        
+        .keyword-text {
+          flex: 1;
+          font-size: 14px;
+        }
+        
+        .add-keyword-btn {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          padding: 4px 12px;
+          border-radius: 4px;
+          font-size: 12px;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          
+          &:hover {
+            background: #2563eb;
+          }
+        }
+        
+        .already-selected {
+          color: #6b7280;
+          font-size: 12px;
+        }
+      }
+      
+      .no-keywords {
+        padding: 20px;
+        text-align: center;
+        color: #9ca3af;
+        font-size: 14px;
+      }
+    }
+  }
+  
+  .keyword-help-text {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #6b7280;
+  }
+}
+
+/* 触发条件选择器样式 */
+.condition-selector {
+  position: relative;
+  
+  .selected-conditions {
+    min-height: 40px;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    
+    .condition-tag {
+      display: inline-flex;
+      align-items: center;
+      background: #10b981;
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      gap: 4px;
+      
+      .remove-condition {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        padding: 0;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 2px;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      }
+    }
+    
+    .placeholder-text {
+      color: #9ca3af;
+      font-size: 14px;
+    }
+  }
+  
+  .condition-input-container {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    
+    .condition-input {
+      flex: 1;
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 14px;
+      background: white;
+      
+      &:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+      }
+    }
+    
+    .add-condition-btn {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      
+      &:hover:not(:disabled) {
+        background: #059669;
+      }
+      
+      &:disabled {
+        background: #d1d5db;
+        cursor: not-allowed;
+      }
+    }
+  }
+  
+  .condition-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    
+    .dropdown-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e5e7eb;
+      font-weight: 500;
+      font-size: 14px;
+      
+      .close-dropdown {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        color: #6b7280;
+        padding: 0;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        &:hover {
+          color: #374151;
+        }
+      }
+    }
+    
+    .dropdown-content {
+      padding: 16px;
+      
+      .condition-tips {
+        p {
+          margin: 0 0 8px 0;
+          font-size: 14px;
+          color: #374151;
+        }
+        
+        ul {
+          margin: 0;
+          padding-left: 20px;
+          
+          li {
+            margin-bottom: 4px;
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.4;
+          }
+        }
+      }
+    }
+  }
+  
+  .condition-help-text {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #6b7280;
+  }
+}
+
+.keyword-help-text {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+.keyword-tag.all-keywords {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border: 1px solid #91d5ff;
 }
 </style>

@@ -1,0 +1,109 @@
+{
+  "uploads": [
+    {
+      "id": "e0f949797e21",
+      "type": "test_message",
+      "data": {
+        "content": "测试消息",
+        "sender": "测试用户",
+        "timestamp": "2025-08-14T13:02:10.878490"
+      },
+      "priority": 3,
+      "timestamp": "2025-08-14T13:02:10.878490",
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "5ee190f7a6a5",
+      "type": "test_message",
+      "data": {
+        "content": "测试消息",
+        "sender": "测试用户",
+        "timestamp": "2025-08-14T13:01:41.398532"
+      },
+      "priority": 3,
+      "timestamp": "2025-08-14T13:01:41.398532",
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "e3f45340199f",
+      "type": "test_message",
+      "data": {
+        "content": "测试消息",
+        "sender": "测试用户",
+        "timestamp": "2025-08-14T13:01:21.218257"
+      },
+      "priority": 3,
+      "timestamp": "2025-08-14T13:01:21.218257",
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "7692b53e7fd4",
+      "type": "test_message",
+      "data": {
+        "content": "测试消息",
+        "sender": "测试用户",
+        "timestamp": "2025-08-14T13:00:45.724939"
+      },
+      "priority": 3,
+      "timestamp": "2025-08-14T13:00:45.724939",
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "6a990425a15d",
+      "type": "test_message",
+      "data": {
+        "content": "测试消息",
+        "sender": "测试用户",
+        "timestamp": "2025-08-14T13:00:15.728468"
+      },
+      "priority": 3,
+      "timestamp": "2025-08-14T13:00:15.728468",
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "43f9901d9a5c",
+      "type": "test_message",
+      "data": {
+        "content": "测试消息",
+        "sender": "测试用户",
+        "timestamp": "2025-08-14T12:59:57.169051"
+      },
+      "priority": 3,
+      "timestamp": "2025-08-14T12:59:57.170051",
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "c5cfc3b4264e",
+      "type": "offline_message",
+      "data": {
+        "content": "离线状态下的消息",
+        "sender": "离线用户",
+        "timestamp": "2025-08-14T13:01:41.422086"
+      },
+      "priority": 2,
+      "timestamp": "2025-08-14T13:01:41.422086",
+      "retry_count": 0,
+      "max_retries": 3
+    },
+    {
+      "id": "d058bc6fc95e",
+      "type": "offline_message",
+      "data": {
+        "content": "离线状态下的消息",
+        "sender": "离线用户",
+        "timestamp": "2025-08-14T13:02:10.890694"
+      },
+      "priority": 2,
+      "timestamp": "2025-08-14T13:02:10.890694",
+      "retry_count": 0,
+      "max_retries": 3
+    }
+  ],
+  "last_save_time": "2025-08-14T13:02:15.899228"
+}

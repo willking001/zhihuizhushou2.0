@@ -2,7 +2,9 @@ package com.dianxiaozhu.backend.service;
 
 import com.dianxiaozhu.backend.entity.Message;
 import com.dianxiaozhu.backend.entity.KeywordConfig;
+import com.dianxiaozhu.backend.entity.User;
 import com.dianxiaozhu.backend.repository.MessageRepository;
+import com.dianxiaozhu.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -13,6 +15,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +27,8 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final KeywordConfigService keywordConfigService;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final GroupManagementService groupManagementService;
+    private final UserRepository userRepository;
     
     /**
      * 保存消息
@@ -85,7 +91,39 @@ public class MessageService {
      */
     private void sendToKafka(Message message) {
         try {
-            kafkaTemplate.send("message-forward", message);
+            // 构建转发消息数据
+            Map<String, Object> forwardData = new HashMap<>();
+            forwardData.put("message", message);
+            
+            // 如果是群组消息，获取对应的网格员信息
+            if (message.getIsGroup() && message.getChatRoom() != null) {
+                try {
+                    // 获取群组对应的网格员信息
+                    String gridOfficerId = groupManagementService.getGridOfficerIdByChatRoom(message.getChatRoom());
+                    if (gridOfficerId != null) {
+                        Optional<User> gridOfficer = userRepository.findById(Long.parseLong(gridOfficerId));
+                        if (gridOfficer.isPresent()) {
+                            User officer = gridOfficer.get();
+                            Map<String, Object> officerInfo = new HashMap<>();
+                            officerInfo.put("id", officer.getId());
+                            officerInfo.put("name", officer.getUsername());
+                            officerInfo.put("phone", officer.getPhone());
+                            officerInfo.put("wechatName", officer.getWechatName());
+                            officerInfo.put("gridArea", officer.getGridArea());
+                            
+                            forwardData.put("targetGridOfficer", officerInfo);
+                            log.info("群组消息将转发给网格员: 群组[{}] -> 网格员[{}]", 
+                                    message.getChatRoom(), officer.getUsername());
+                        }
+                    } else {
+                        log.warn("群组[{}]未分配网格员，将使用默认转发逻辑", message.getChatRoom());
+                    }
+                } catch (Exception e) {
+                    log.error("获取群组网格员信息失败: chatRoom={}", message.getChatRoom(), e);
+                }
+            }
+            
+            kafkaTemplate.send("message-forward", forwardData);
             log.info("消息已发送到Kafka: messageId={}", message.getId());
         } catch (Exception e) {
             log.error("发送消息到Kafka失败: messageId={}", message.getId(), e);

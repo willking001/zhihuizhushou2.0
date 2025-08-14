@@ -5,6 +5,7 @@ import com.dianxiaozhu.backend.entity.Message;
 import com.dianxiaozhu.backend.service.UserService;
 import com.dianxiaozhu.backend.service.MessageService;
 import com.dianxiaozhu.backend.service.KeywordConfigService;
+import com.dianxiaozhu.backend.service.GroupManagementService;
 import com.dianxiaozhu.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,9 @@ public class GridController {
 
     @Autowired
     private KeywordConfigService keywordConfigService;
+
+    @Autowired
+    private GroupManagementService groupManagementService;
 
     @Autowired
     private UserRepository userRepository;
@@ -138,10 +142,42 @@ public class GridController {
             // 保存消息并检查关键词转发
             Message savedMessage = messageService.saveMessage(message);
             
+            // 准备转发信息
+            Map<String, Object> forwardInfo = new HashMap<>();
+            if (savedMessage.getIsForwarded() && savedMessage.getIsGroup()) {
+                try {
+                    // 获取群组对应的网格员ID
+                    String gridOfficerId = groupManagementService.getGridOfficerIdByChatRoom(savedMessage.getChatRoom());
+                    if (gridOfficerId != null) {
+                        // 获取网格员详细信息
+                        Optional<User> officerOpt = userRepository.findById(gridOfficerId);
+                        if (officerOpt.isPresent()) {
+                            User officer = officerOpt.get();
+                            forwardInfo.put("grid_officer_id", officer.getId());
+                            forwardInfo.put("grid_officer_name", officer.getUsername());
+                            forwardInfo.put("target_wechat_name", officer.getWechatName());
+                            forwardInfo.put("grid_area", officer.getGridArea());
+                            forwardInfo.put("phone", officer.getPhone());
+                            
+                            log.info("返回网格员转发信息: 群组[{}] -> 网格员[{}] 微信[{}]", 
+                                    savedMessage.getChatRoom(), officer.getUsername(), officer.getWechatName());
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("获取网格员转发信息失败: chatRoom={}", savedMessage.getChatRoom(), e);
+                }
+            }
+            
+            Map<String, Object> data = new HashMap<>();
+            data.put("messageId", savedMessage.getId());
+            data.put("isForwarded", savedMessage.getIsForwarded());
+            if (!forwardInfo.isEmpty()) {
+                data.put("forward_info", forwardInfo);
+            }
+            
             response.put("success", true);
             response.put("message", "消息接收成功");
-            response.put("messageId", savedMessage.getId());
-            response.put("isForwarded", savedMessage.getIsForwarded());
+            response.put("data", data);
             
             return ResponseEntity.ok(response);
             

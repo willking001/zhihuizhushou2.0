@@ -143,7 +143,6 @@
               <th class="priority-column">优先级</th>
               <th class="status-column">状态</th>
               <th class="hit-count-column">命中次数</th>
-              <th class="trigger-threshold-column">触发阈值</th>
               <th class="sortable-column" @click="sortBy('createdAt')">
                 <span class="column-header">
                   创建时间
@@ -187,9 +186,6 @@
               </td>
               <td class="hit-count-column">
                 <span class="hit-count">{{ keyword.hitCount || 0 }}</span>
-              </td>
-              <td class="trigger-threshold-column">
-                <span class="trigger-threshold">{{ keyword.triggerThreshold || 3 }}</span>
               </td>
               <td class="time-column">
                 <div class="time-info">
@@ -331,13 +327,7 @@
                 </select>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">触发阈值</label>
-                <input v-model.number="form.triggerThreshold" type="number" min="1" max="100" placeholder="默认3次" class="form-input">
-                <small class="form-hint">客户端关键词触发多少次后自动上传到服务器</small>
-              </div>
-            </div>
+
             <div class="form-group">
               <label class="checkbox-label">
                 <input type="checkbox" v-model="form.isActive" class="form-checkbox">
@@ -1225,20 +1215,6 @@ onMounted(() => {
   .hit-count {
     font-weight: 500;
     color: #3b82f6;
-  }
-}
-
-.trigger-threshold-column {
-  width: 100px;
-  text-align: center;
-
-  .trigger-threshold {
-    font-weight: 500;
-    color: #059669;
-    background: #ecfdf5;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 12px;
   }
 }
 

@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Any, Tuple
 from keyword_manager import get_keyword_manager
 from message_templates import get_template_manager
 from qa_service import get_qa_service
+from network_manager import get_network_manager
 
 class IntegratedService:
     """集成服务，联动关键词管理、智能问答和消息模板配置"""
@@ -31,6 +32,7 @@ class IntegratedService:
         self.keyword_manager = get_keyword_manager(server_url)
         self.template_manager = get_template_manager(server_url)
         self.qa_service = get_qa_service(server_url)
+        self.network_manager = get_network_manager(server_url)
         
         # 本地缓存目录
         self.cache_dir = "integrated_cache"
@@ -160,6 +162,24 @@ class IntegratedService:
                 
                 result['forward_required'] = True
                 result['forward_content'] = formatted
+            
+            # 如果需要转发且网络不可用，保存到离线队列
+            if result['forward_required'] and not self.network_manager.is_online:
+                message_data = {
+                    'message': message,
+                    'context': context,
+                    'session_id': session_id,
+                    'result': result,
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+                self.network_manager.add_pending_upload(
+                    'message',
+                    message_data,
+                    priority=3 if keyword_info and keyword_info.get('priority', 0) >= 3 else 1
+                )
+                
+                print(f"网络不可用，消息已保存到离线队列: {message[:50]}...")
             
             # 保存统计数据
             self.save_local_data()

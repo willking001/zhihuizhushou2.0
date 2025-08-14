@@ -11,6 +11,9 @@ from typing import Dict, List, Optional, Callable
 import json
 import os
 
+# 导入网络管理器
+from network_manager import get_network_manager
+
 try:
     import wxauto
 except ImportError:
@@ -20,12 +23,13 @@ except ImportError:
 class WeChatEnhanced:
     """微信增强监控类"""
     
-    def __init__(self, callback_func: Optional[Callable] = None):
+    def __init__(self, callback_func: Optional[Callable] = None, server_url: str = "http://localhost:8000"):
         """
         初始化微信监控
         
         Args:
             callback_func: 消息回调函数
+            server_url: 服务器地址
         """
         self.wx = None
         self.is_monitoring = False
@@ -33,6 +37,13 @@ class WeChatEnhanced:
         self.callback_func = callback_func
         self.last_message_time = {}
         self.message_cache = set()
+        
+        # 初始化网络管理器
+        self.network_manager = get_network_manager(server_url)
+        
+        # 离线消息存储
+        self.offline_messages = []
+        self.max_offline_messages = 500
         
         # 配置参数
         self.config = {
@@ -192,6 +203,10 @@ class WeChatEnhanced:
             # 更新统计
             self.stats['total_messages'] += 1
             
+            # 如果网络不可用，保存到离线队列
+            if not self.network_manager.is_online:
+                self._store_offline_message(message_data)
+            
             # 调用回调函数
             if self.callback_func:
                 self.callback_func(message_data)
@@ -279,6 +294,50 @@ class WeChatEnhanced:
         """检查微信是否连接"""
         return self.wx is not None
     
+    def _store_offline_message(self, message_data: Dict):
+        """存储离线消息"""
+        try:
+            # 添加到离线消息队列
+            self.offline_messages.append(message_data)
+            
+            # 限制离线消息数量
+            if len(self.offline_messages) > self.max_offline_messages:
+                # 移除最旧的消息
+                self.offline_messages = self.offline_messages[-self.max_offline_messages:]
+            
+            print(f"已保存离线消息: {message_data['content'][:30]}...")
+            
+        except Exception as e:
+            print(f"保存离线消息失败: {str(e)}")
+    
+    def get_offline_messages(self) -> List[Dict]:
+        """获取离线消息"""
+        return self.offline_messages.copy()
+    
+    def clear_offline_messages(self):
+        """清空离线消息"""
+        self.offline_messages.clear()
+        print("已清空离线消息")
+    
+    def process_offline_messages(self):
+        """处理离线消息（网络恢复时调用）"""
+        if not self.offline_messages:
+            return
+        
+        print(f"开始处理 {len(self.offline_messages)} 条离线消息")
+        
+        for message_data in self.offline_messages:
+            try:
+                # 重新处理消息
+                if self.callback_func:
+                    self.callback_func(message_data)
+                    
+            except Exception as e:
+                print(f"处理离线消息失败: {str(e)}")
+        
+        # 清空已处理的离线消息
+        self.clear_offline_messages()
+    
     def cleanup(self):
         """清理资源"""
         self.stop_monitoring()
@@ -289,11 +348,11 @@ class WeChatEnhanced:
 # 全局实例
 _wechat_instance = None
 
-def get_wechat_instance(callback_func: Optional[Callable] = None) -> WeChatEnhanced:
-    """获取微信监控实例（单例模式）"""
+def get_wechat_instance(callback_func: Optional[Callable] = None, server_url: str = "http://localhost:8000") -> WeChatEnhanced:
+    """获取微信实例（单例模式）"""
     global _wechat_instance
     if _wechat_instance is None:
-        _wechat_instance = WeChatEnhanced(callback_func)
+        _wechat_instance = WeChatEnhanced(callback_func, server_url)
     return _wechat_instance
 
 def cleanup_wechat():

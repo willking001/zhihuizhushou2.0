@@ -15,6 +15,9 @@ from typing import Dict, List, Optional, Set, Tuple
 from collections import defaultdict, Counter
 import re
 
+# 导入网络管理器
+from network_manager import get_network_manager
+
 class KeywordManager:
     """关键词管理器"""
     
@@ -27,6 +30,13 @@ class KeywordManager:
         """
         self.server_url = server_url
         self.session = requests.Session()
+        
+        # 初始化网络管理器
+        self.network_manager = get_network_manager(server_url)
+        
+        # 注册网络状态回调
+        self.network_manager.add_online_callback(self._on_network_online)
+        self.network_manager.add_offline_callback(self._on_network_offline)
         
         # 本地缓存文件路径
         self.cache_dir = "keyword_cache"
@@ -199,6 +209,11 @@ class KeywordManager:
     
     def sync_from_server(self) -> bool:
         """从服务器同步关键词"""
+        # 检查网络状态
+        if not self.network_manager.is_online:
+            print("网络不可用，使用本地缓存数据")
+            return False
+        
         try:
             print("开始从服务器同步关键词...")
             
@@ -231,21 +246,33 @@ class KeywordManager:
             
         except Exception as e:
             print(f"同步关键词时出错: {str(e)}")
+            # 网络错误时标记为离线
+            self.network_manager._handle_offline()
             return False
     
     def upload_learned_keywords(self) -> bool:
         """上传学习到的关键词到服务器"""
+        if not self.learned_keywords:
+            return True
+        
+        # 准备上传数据
+        upload_data = {
+            'learned_keywords': self.learned_keywords,
+            'usage_stats': dict(self.keyword_stats['usage_count']),
+            'client_id': self._get_client_id()
+        }
+        
+        # 如果网络不可用，添加到待上传队列
+        if not self.network_manager.is_online:
+            self.network_manager.add_pending_upload(
+                'learned_keywords', 
+                upload_data, 
+                priority=2  # 中等优先级
+            )
+            print("网络不可用，学习关键词已添加到待上传队列")
+            return False
+        
         try:
-            if not self.learned_keywords:
-                return True
-            
-            # 准备上传数据
-            upload_data = {
-                'learned_keywords': self.learned_keywords,
-                'usage_stats': dict(self.keyword_stats['usage_count']),
-                'client_id': self._get_client_id()
-            }
-            
             response = self.session.post(
                 f"{self.server_url}/api/keywords/upload_learned",
                 json=upload_data,
@@ -259,10 +286,23 @@ class KeywordManager:
                     return True
             
             print(f"上传学习关键词失败，状态码: {response.status_code}")
+            # 上传失败时添加到待上传队列
+            self.network_manager.add_pending_upload(
+                'learned_keywords', 
+                upload_data, 
+                priority=2
+            )
             return False
             
         except Exception as e:
             print(f"上传学习关键词时出错: {str(e)}")
+            # 网络错误时添加到待上传队列
+            self.network_manager.add_pending_upload(
+                'learned_keywords', 
+                upload_data, 
+                priority=2
+            )
+            self.network_manager._handle_offline()
             return False
     
     def check_keyword_match(self, message: str) -> Tuple[bool, Optional[Dict]]:
@@ -537,6 +577,19 @@ class KeywordManager:
         hostname = socket.gethostname()
         client_id = hashlib.md5(hostname.encode()).hexdigest()[:8]
         return client_id
+    
+    def _on_network_online(self):
+        """网络恢复时的回调"""
+        print("网络已恢复，开始同步关键词数据")
+        # 立即尝试同步
+        self.sync_from_server()
+        self.upload_learned_keywords()
+    
+    def _on_network_offline(self):
+        """网络断开时的回调"""
+        print("网络已断开，切换到离线模式")
+        # 保存当前数据到本地
+        self.save_local_data()
     
     def cleanup(self):
         """清理资源"""

@@ -104,9 +104,10 @@ public class DatabaseInsertUtil {
         
         String templateContent = "🔔 重要消息转发\n\n" +
                 "原始消息：{{original_message}}\n" +
-                "发送人：{{sender_name}}\n" +
+                "消息来源：{{group_name}}\n" +
+                "发送人：{{sender_name}}\\{{sender_remark}}\n" +
                 "发送时间：{{send_time}}\n" +
-                "消息类型：{{message_type}}\n\n" +
+                "消息类型：{{message_level}}（紧急、高、中、低）\n\n" +
                 "⚠️ 此消息已被系统识别为重要消息，请及时处理！\n\n" +
                 "处理建议：\n" +
                 "1. 立即查看消息内容\n" +
@@ -115,7 +116,7 @@ public class DatabaseInsertUtil {
                 "4. 及时反馈处理结果";
         
         jdbcTemplate.update(insertTemplateSql, 
-            "智能转发消息模板", 
+            "重要消息转发模板", 
             templateContent, 
             "forward", 
             1, 

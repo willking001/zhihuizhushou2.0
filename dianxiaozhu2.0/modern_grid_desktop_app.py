@@ -38,6 +38,8 @@ try:
     from qa_service import get_qa_service, cleanup_qa_service
     from keyword_manager import get_keyword_manager
     from message_templates import get_template_manager
+    from network_manager import get_network_manager, cleanup_network_manager
+    from config_manager import get_config_manager, cleanup_config_manager
 except ImportError as e:
     print(f"警告：无法导入智能服务模块，部分功能可能不可用: {e}")
 
@@ -81,6 +83,16 @@ class ModernGridDesktopApp:
         self.forward_wechat_name = ""
         self.forward_keywords = "紧急,故障,停电,事故,报修"  # 本地关键词（等级2）
         self.server_keywords = ""  # 服务器关键词（等级1）
+        
+        # 初始化网络管理器和配置管理器
+        try:
+            self.network_manager = get_network_manager(self.server_url)
+            self.config_manager = get_config_manager(self.server_url)
+            print("网络管理器和配置管理器初始化成功")
+        except Exception as e:
+            print(f"初始化管理器失败: {str(e)}")
+            self.network_manager = None
+            self.config_manager = None
         
         # 加载简化转发配置
         self.load_simple_forward_config()
@@ -768,6 +780,24 @@ class ModernGridDesktopApp:
                 text_color="#2fa572"
             )
             
+            # 初始化微信监控（传递server_url）
+            if WeChatEnhanced and not self.wechat_monitor:
+                try:
+                    from wechat_enhanced import get_wechat_instance
+                    self.wechat_monitor = get_wechat_instance(self.server_url)
+                    self.log_message("微信监控模块已初始化（支持断网机制）")
+                except Exception as e:
+                    self.log_message(f"微信监控模块初始化失败: {str(e)}")
+            
+            # 同步配置管理器的设置
+            if self.config_manager:
+                try:
+                    # 同步群组配置
+                    self.config_manager.sync_from_server()
+                    self.log_message("配置同步完成")
+                except Exception as e:
+                    self.log_message(f"配置同步失败，使用本地缓存: {str(e)}")
+            
             # 启动监控线程
             self.monitor_thread = threading.Thread(target=self.monitor_loop, daemon=True)
             self.monitor_thread.start()
@@ -857,6 +887,15 @@ class ModernGridDesktopApp:
                 "timestamp": datetime.now().isoformat()
             }
             
+            # 检查网络状态
+            if self.network_manager and not self.network_manager.is_online:
+                # 网络不可用，保存到本地待上传
+                self.network_manager.add_pending_upload(
+                    'message', message_data, priority='high'
+                )
+                self.log_message(f"网络不可用，消息已保存到本地: {message}")
+                return
+            
             response = self.session.post(f"{self.server_url}/api/grid/messages", 
                                        json=message_data, timeout=10)
             
@@ -871,25 +910,40 @@ class ModernGridDesktopApp:
                     # 检查关键词触发转发
                     should_forward = False
                     triggered_keyword = None
+                    forward_target = None
                     
-                    if self.forward_wechat_name:
-                        # 检查是否包含触发关键词
-                        should_forward, triggered_keyword = self.check_keyword_trigger(message)
+                    # 检查是否包含触发关键词
+                    should_forward, triggered_keyword = self.check_keyword_trigger(message)
                     
-                    # 如果需要转发到微信（仅关键词触发）
-                    if should_forward and self.forward_wechat_name:
+                    if should_forward:
+                        # 优先使用本地配置的转发目标
+                        if self.forward_wechat_name:
+                            forward_target = self.forward_wechat_name
+                            self.log_message(f"🎯 使用本地配置转发目标: {forward_target}")
+                        else:
+                            # 如果没有本地配置，检查后端返回的网格员信息
+                            forward_info = result.get('data', {}).get('forward_info')
+                            if forward_info and forward_info.get('target_wechat_name'):
+                                forward_target = forward_info.get('target_wechat_name')
+                                grid_officer_name = forward_info.get('grid_officer_name', '未知网格员')
+                                self.log_message(f"🎯 使用网格员转发目标: {forward_target} (网格员: {grid_officer_name})")
+                            else:
+                                self.log_message(f"⚠️ 关键词[{triggered_keyword}]触发转发，但未配置转发目标")
+                    
+                    # 如果需要转发到微信且有转发目标
+                    if should_forward and forward_target:
                         # 使用异步转发（在线程中运行）
                         import asyncio
                         try:
                             # 在新的事件循环中运行异步转发
                             loop = asyncio.new_event_loop()
                             asyncio.set_event_loop(loop)
-                            loop.run_until_complete(self.forward_message_to_wechat(message, self.current_user, triggered_keyword))
+                            loop.run_until_complete(self.forward_message_to_wechat_target(message, self.current_user, triggered_keyword, forward_target))
                             loop.close()
                         except Exception as e:
                             self.log_message(f"❌ 异步转发失败: {str(e)}")
                             # 回退到同步转发
-                            self.sync_forward_message_to_wechat(message, self.current_user, triggered_keyword)
+                            self.sync_forward_message_to_wechat_target(message, self.current_user, triggered_keyword, forward_target)
                 else:
                     self.log_message(f"消息发送失败: {result.get('message')}")
             else:
@@ -897,6 +951,18 @@ class ModernGridDesktopApp:
                 
         except Exception as e:
             self.log_message(f"发送消息时发生错误: {str(e)}")
+            # 网络异常时也保存到本地
+            if self.network_manager:
+                message_data = {
+                    "content": message,
+                    "sender": self.current_user,
+                    "grid_area": self.grid_area_var.get(),
+                    "timestamp": datetime.now().isoformat()
+                }
+                self.network_manager.add_pending_upload(
+                    'message', message_data, priority='high'
+                )
+                self.log_message(f"网络异常，消息已保存到本地: {message}")
     
     async def forward_message_to_wechat(self, message, sender="系统", triggered_keyword=None):
         """转发消息到微信（实际发送版本）"""
@@ -926,6 +992,44 @@ class ModernGridDesktopApp:
             
             # 实际发送微信消息
             success = await self._send_wechat_message(formatted_message, self.forward_wechat_name)
+            
+            if success:
+                self.log_message(f"✅ 微信转发成功: {message[:30]}...")
+                self.message_stats["forwarded_count"] += 1
+                self.update_stats_display()
+            else:
+                self.log_message(f"❌ 微信转发失败")
+                    
+        except Exception as e:
+            self.log_message(f"❌ 微信转发失败: {str(e)}")
+    
+    async def forward_message_to_wechat_target(self, message, sender="系统", triggered_keyword=None, target=None):
+        """转发消息到指定微信目标"""
+        try:
+            # 如果没有指定转发目标，直接返回
+            if not target:
+                self.log_message("⚠️ 未指定转发目标")
+                return
+            
+            # 格式化转发消息：消息来源 + 消息内容
+            area_name = "未知区域"
+            if hasattr(self, 'grid_area_var') and self.grid_area_var:
+                area_name = self.grid_area_var.get()
+            elif hasattr(self, 'current_user') and self.current_user:
+                area_name = "网格区域"
+            
+            source_info = f"{area_name} - {sender}"
+            formatted_message = f"📢 消息来源: {source_info}\n📝 消息内容: {message}"
+            
+            # 添加关键词信息到转发消息
+            if triggered_keyword:
+                formatted_message += f"\n🔑 触发关键词: {triggered_keyword}"
+                self.log_message(f"🔑 关键词[{triggered_keyword}]触发转发到微信[{target}]")
+            else:
+                self.log_message(f"📤 转发到微信[{target}]")
+            
+            # 实际发送微信消息
+            success = await self._send_wechat_message(formatted_message, target)
             
             if success:
                 self.log_message(f"✅ 微信转发成功: {message[:30]}...")
@@ -1009,6 +1113,47 @@ class ModernGridDesktopApp:
             
             # 同步发送微信消息
             success, error_msg = self._send_wechat_message_sync(formatted_message, self.forward_wechat_name)
+            
+            if success:
+                self.log_message(f"✅ 同步微信转发成功: {message[:30]}...")
+                self.message_stats["forwarded_count"] += 1
+                self.update_stats_display()
+                return True, "发送成功"
+            else:
+                self.log_message(f"❌ 同步微信转发失败: {error_msg}")
+                return False, error_msg
+                
+        except Exception as e:
+            error_msg = f"转发过程中出现异常: {str(e)}"
+            self.log_message(f"❌ 同步微信转发失败: {error_msg}")
+            return False, error_msg
+    
+    def sync_forward_message_to_wechat_target(self, message, sender="系统", triggered_keyword=None, target=None):
+        """同步转发消息到指定微信目标"""
+        try:
+            # 如果没有指定转发目标，直接返回
+            if not target:
+                self.log_message("⚠️ 未指定转发目标")
+                return False, "未指定转发目标"
+            
+            # 格式化转发消息
+            area_name = "未知区域"
+            if hasattr(self, 'grid_area_var') and self.grid_area_var:
+                area_name = self.grid_area_var.get()
+            elif hasattr(self, 'current_user') and self.current_user:
+                area_name = "网格区域"
+            
+            source_info = f"{area_name} - {sender}"
+            formatted_message = f"📢 消息来源: {source_info}\n📝 消息内容: {message}"
+            
+            if triggered_keyword:
+                formatted_message += f"\n🔑 触发关键词: {triggered_keyword}"
+                self.log_message(f"🔑 关键词[{triggered_keyword}]触发同步转发到微信[{target}]")
+            else:
+                self.log_message(f"📤 同步转发到微信[{target}]")
+            
+            # 同步发送微信消息
+            success, error_msg = self._send_wechat_message_sync(formatted_message, target)
             
             if success:
                 self.log_message(f"✅ 同步微信转发成功: {message[:30]}...")
@@ -1187,6 +1332,18 @@ class ModernGridDesktopApp:
     def fetch_server_keywords(self):
         """从服务器获取关键词配置（等级1）"""
         try:
+            # 优先使用配置管理器获取关键词
+            if self.config_manager:
+                try:
+                    config = self.config_manager.get_local_config()
+                    if config and 'keywords' in config:
+                        self.server_keywords = config['keywords']
+                        print(f"从配置管理器获取关键词成功: {self.server_keywords}")
+                        return
+                except Exception as e:
+                    print(f"从配置管理器获取关键词失败: {str(e)}")
+            
+            # 如果配置管理器不可用，使用传统方式
             response = self.session.get(
                 f"{self.server_url}/api/grid/forward_keywords",
                 timeout=10
@@ -1398,6 +1555,22 @@ class ModernGridDesktopApp:
         """程序关闭时的清理"""
         if self.monitoring_active:
             self.stop_monitoring()
+        
+        # 清理网络管理器和配置管理器
+        try:
+            if hasattr(self, 'network_manager') and self.network_manager:
+                cleanup_network_manager()
+                print("网络管理器已清理")
+        except Exception as e:
+            print(f"清理网络管理器失败: {str(e)}")
+        
+        try:
+            if hasattr(self, 'config_manager') and self.config_manager:
+                cleanup_config_manager()
+                print("配置管理器已清理")
+        except Exception as e:
+            print(f"清理配置管理器失败: {str(e)}")
+        
         self.root.destroy()
     
     def run(self):

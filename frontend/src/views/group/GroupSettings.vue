@@ -98,32 +98,80 @@
           <div class="setting-item full-width">
             <div class="setting-label">
               <label>默认回复模板</label>
-              <span class="setting-desc">新群组的默认自动回复内容</span>
+              <span class="setting-desc">选择系统消息管理中的回复模板</span>
             </div>
             <div class="setting-control">
-              <textarea 
-                v-model="settings.defaultReplyTemplate" 
-                class="setting-textarea"
-                placeholder="请输入默认回复模板..."
-                rows="4"
-              ></textarea>
+              <select 
+                v-model="settings.defaultReplyTemplateId" 
+                class="setting-select"
+                :disabled="templatesLoading"
+              >
+                <option value="">请选择回复模板</option>
+                <option 
+                  v-for="(template, id) in replyTemplates" 
+                  :key="id" 
+                  :value="id"
+                >
+                  {{ template.name }}
+                </option>
+              </select>
             </div>
           </div>
 
-          <div class="setting-item">
+          <div class="setting-item full-width">
             <div class="setting-label">
-              <label>回复延迟时间</label>
-              <span class="setting-desc">自动回复的延迟时间（秒）</span>
+              <label>默认转发模板</label>
+              <span class="setting-desc">选择系统消息管理中的转发模板</span>
             </div>
             <div class="setting-control">
-              <input 
-                type="number" 
-                v-model.number="settings.replyDelay" 
-                class="setting-input"
-                min="0"
-                max="60"
-                placeholder="延迟时间"
+              <select 
+                v-model="settings.defaultForwardTemplateId" 
+                class="setting-select"
+                :disabled="templatesLoading"
               >
+                <option value="">请选择转发模板</option>
+                <option 
+                  v-for="(template, id) in forwardTemplates" 
+                  :key="id" 
+                  :value="id"
+                >
+                  {{ template.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-item full-width">
+            <div class="setting-label">
+              <label>模拟人工回复延迟</label>
+              <span class="setting-desc">设置回复延迟时间范围，系统将随机选择该范围内的时间进行回复</span>
+            </div>
+            <div class="setting-control reply-delay-range">
+              <div class="delay-input-group">
+                <label class="delay-label">最小延迟：</label>
+                <input 
+                  type="number" 
+                  v-model.number="settings.replyDelayMin" 
+                  class="setting-input delay-input"
+                  min="1"
+                  max="300"
+                  placeholder="最小秒数"
+                >
+                <span class="delay-unit">秒</span>
+              </div>
+              <div class="delay-separator">到</div>
+              <div class="delay-input-group">
+                <label class="delay-label">最大延迟：</label>
+                <input 
+                  type="number" 
+                  v-model.number="settings.replyDelayMax" 
+                  class="setting-input delay-input"
+                  min="1"
+                  max="300"
+                  placeholder="最大秒数"
+                >
+                <span class="delay-unit">秒</span>
+              </div>
             </div>
           </div>
 
@@ -313,7 +361,9 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { groupManagementApi } from '@/api/groupManagement'
+import { getTemplateList } from '@/api/messageTemplate'
 
 // 响应式数据
 const settings = reactive({
@@ -324,7 +374,8 @@ const settings = reactive({
   defaultMessageForwarding: false,
   
   // 自动回复设置
-  defaultReplyTemplate: '您好，我是智能助手，正在为您处理相关问题，请稍候...',
+  defaultReplyTemplateId: '', // 使用模板ID而不是直接的模板内容
+  defaultForwardTemplateId: '', // 转发模板ID
   replyDelay: 3,
   dailyReplyLimit: 100,
   enableSmartReply: true,
@@ -346,6 +397,11 @@ const originalSettings = ref({})
 const showSaveDialog = ref(false)
 const loading = ref(false)
 
+// 模板相关数据
+const replyTemplates = ref({})
+const forwardTemplates = ref({})
+const templatesLoading = ref(false)
+
 // 计算属性
 const hasChanges = computed(() => {
   return JSON.stringify(settings) !== JSON.stringify(originalSettings.value)
@@ -366,7 +422,50 @@ const loadSettings = async () => {
   }
 }
 
+// 加载消息模板
+const loadTemplates = async () => {
+  try {
+    templatesLoading.value = true
+    
+    // 并行加载回复模板和转发模板
+    const [replyResponse, forwardResponse] = await Promise.all([
+      getTemplateList('reply'),
+      getTemplateList('forward')
+    ])
+    
+    if (replyResponse && replyResponse.data) {
+      replyTemplates.value = replyResponse.data
+    }
+    
+    if (forwardResponse && forwardResponse.data) {
+      forwardTemplates.value = forwardResponse.data
+    }
+    
+  } catch (error) {
+    console.error('加载模板失败:', error)
+    ElMessage.error('加载消息模板失败')
+  } finally {
+    templatesLoading.value = false
+  }
+}
+
 const saveSettings = () => {
+  // 验证延迟时间设置
+  if (settings.replyDelayMin && settings.replyDelayMax && settings.replyDelayMin > settings.replyDelayMax) {
+    ElMessage.error('最小延迟时间不能大于最大延迟时间')
+    return
+  }
+  
+  if (settings.replyDelayMin && settings.replyDelayMin < 1) {
+    ElMessage.error('最小延迟时间不能小于1秒')
+    return
+  }
+  
+  if (settings.replyDelayMax && settings.replyDelayMax > 300) {
+    ElMessage.error('最大延迟时间不能超过300秒')
+    return
+  }
+  
   showSaveDialog.value = true
 }
 
@@ -377,9 +476,11 @@ const confirmSave = async () => {
     originalSettings.value = JSON.parse(JSON.stringify(settings))
     showSaveDialog.value = false
     // 显示成功消息
+    ElMessage.success('群组设置保存成功')
     console.log('设置保存成功')
   } catch (error) {
     console.error('保存设置失败:', error)
+    ElMessage.error('保存设置失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -391,10 +492,13 @@ const resetToDefaults = () => {
     defaultAutoReply: true,
     defaultKeywordMonitoring: true,
     defaultMessageForwarding: false,
-    defaultReplyTemplate: '您好，我是智能助手，正在为您处理相关问题，请稍候...',
-    replyDelay: 3,
-    dailyReplyLimit: 100,
-    enableSmartReply: true,
+  // 自动回复设置
+  defaultReplyTemplateId: '',
+  defaultForwardTemplateId: '',
+  replyDelayMin: 3,
+  replyDelayMax: 8,
+  dailyReplyLimit: 100,
+  enableSmartReply: true,
     messageFrequencyAlert: 50,
     keywordAlert: true,
     activityMonitoring: true,
@@ -409,6 +513,7 @@ const resetToDefaults = () => {
 // 生命周期
 onMounted(() => {
   loadSettings()
+  loadTemplates()
 })
 </script>
 
@@ -585,6 +690,21 @@ onMounted(() => {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+.setting-select {
+  cursor: pointer;
+  background: white;
+}
+
+.setting-select:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.setting-select option {
+  padding: 8px;
+}
+
 .setting-textarea {
   width: 100%;
   padding: 12px;
@@ -737,6 +857,45 @@ input:checked + .toggle-slider:before {
   background: #e2e8f0;
 }
 
+/* 延迟时间范围设置样式 */
+.reply-delay-range {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.delay-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delay-label {
+  font-size: 14px;
+  color: #475569;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.delay-input {
+  width: 80px !important;
+  text-align: center;
+}
+
+.delay-unit {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.delay-separator {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+  padding: 0 4px;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .group-settings {
@@ -757,6 +916,20 @@ input:checked + .toggle-slider:before {
   .setting-input,
   .setting-select {
     width: 100%;
+  }
+  
+  .reply-delay-range {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .delay-input-group {
+    justify-content: space-between;
+  }
+  
+  .delay-input {
+    width: 100px !important;
   }
 }
 </style>

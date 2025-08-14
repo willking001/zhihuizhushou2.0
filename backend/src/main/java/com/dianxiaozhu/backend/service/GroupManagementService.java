@@ -2,9 +2,11 @@ package com.dianxiaozhu.backend.service;
 
 import com.dianxiaozhu.backend.entity.GroupDailyStatistics;
 import com.dianxiaozhu.backend.entity.GroupManagementStatus;
+import com.dianxiaozhu.backend.entity.SystemConfig;
 import com.dianxiaozhu.backend.entity.User;
 import com.dianxiaozhu.backend.repository.GroupDailyStatisticsRepository;
 import com.dianxiaozhu.backend.repository.GroupManagementStatusRepository;
+import com.dianxiaozhu.backend.repository.SystemConfigRepository;
 import com.dianxiaozhu.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ public class GroupManagementService {
     private final GroupManagementStatusRepository groupStatusRepository;
     private final GroupDailyStatisticsRepository dailyStatsRepository;
     private final UserRepository userRepository;
+    private final SystemConfigRepository systemConfigRepository;
     
     @PersistenceContext
     private EntityManager entityManager;
@@ -327,35 +330,108 @@ public class GroupManagementService {
     public Map<String, Object> getGroupSettings() {
         Map<String, Object> settings = new HashMap<>();
         
-        // 基础设置
-        settings.put("defaultGroupStatus", "AUTO");
-        settings.put("autoReplyEnabled", true);
-        settings.put("keywordMonitoringEnabled", true);
-        
-        // 自动回复配置
-        Map<String, Object> autoReplyConfig = new HashMap<>();
-        autoReplyConfig.put("template", "感谢您的消息，我们会尽快回复您。");
-        autoReplyConfig.put("delay", 2);
-        autoReplyConfig.put("dailyLimit", 50);
-        autoReplyConfig.put("smartReplyEnabled", true);
-        settings.put("autoReplyConfig", autoReplyConfig);
-        
-        // 监控设置
-        Map<String, Object> monitoringConfig = new HashMap<>();
-        monitoringConfig.put("frequencyAlerts", true);
-        monitoringConfig.put("keywordAlerts", true);
-        monitoringConfig.put("notificationMethods", Arrays.asList("email", "sms"));
-        settings.put("monitoringConfig", monitoringConfig);
-        
-        // 高级设置
-        Map<String, Object> advancedConfig = new HashMap<>();
-        advancedConfig.put("dataRetentionDays", 90);
-        advancedConfig.put("autoCleanupEnabled", true);
-        advancedConfig.put("apiRateLimit", 1000);
-        advancedConfig.put("debugMode", false);
-        settings.put("advancedConfig", advancedConfig);
+        try {
+            // 从SystemConfig表中读取已保存的群组设置
+            List<SystemConfig> groupConfigs = systemConfigRepository.findAll()
+                .stream()
+                .filter(config -> config.getConfigKey().startsWith("group.settings."))
+                .collect(Collectors.toList());
+            
+            // 如果有保存的设置，使用保存的值
+            for (SystemConfig config : groupConfigs) {
+                String key = config.getConfigKey().replace("group.settings.", "");
+                String value = config.getConfigValue();
+                
+                // 根据配置类型转换值
+                Object convertedValue = convertConfigValue(value, config.getConfigType());
+                settings.put(key, convertedValue);
+            }
+            
+            // 如果没有保存的设置，使用默认值
+            if (settings.isEmpty()) {
+                setDefaultGroupSettings(settings);
+            } else {
+                // 补充缺失的默认设置
+                fillMissingDefaultSettings(settings);
+            }
+            
+        } catch (Exception e) {
+            log.error("获取群组设置失败，使用默认设置", e);
+            setDefaultGroupSettings(settings);
+        }
         
         return settings;
+    }
+    
+    /**
+     * 设置默认群组设置
+     */
+    private void setDefaultGroupSettings(Map<String, Object> settings) {
+        // 基础设置
+        settings.put("defaultGroupStatus", "AUTO");
+        settings.put("defaultAutoReply", true);
+        settings.put("defaultKeywordMonitoring", true);
+        settings.put("defaultMessageForwarding", false);
+        
+        // 模板设置 - 使用系统消息管理模板
+        settings.put("defaultReplyTemplateId", "");
+        settings.put("defaultForwardTemplateId", "");
+        settings.put("replyDelayMin", 3);
+        settings.put("replyDelayMax", 8);
+        settings.put("dailyReplyLimit", 100);
+        settings.put("enableSmartReply", true);
+        
+        // 监控设置
+        settings.put("messageFrequencyAlert", 50);
+        settings.put("keywordAlert", true);
+        settings.put("activityMonitoring", true);
+        settings.put("alertNotificationMethod", "email");
+        
+        // 高级设置
+        settings.put("dataRetentionDays", 30);
+        settings.put("autoCleanup", true);
+        settings.put("apiRateLimit", 60);
+        settings.put("debugMode", false);
+    }
+    
+    /**
+     * 补充缺失的默认设置
+     */
+    private void fillMissingDefaultSettings(Map<String, Object> settings) {
+        if (!settings.containsKey("defaultGroupStatus")) {
+            settings.put("defaultGroupStatus", "AUTO");
+        }
+        if (!settings.containsKey("autoReplyEnabled")) {
+            settings.put("autoReplyEnabled", true);
+        }
+        if (!settings.containsKey("keywordMonitoringEnabled")) {
+            settings.put("keywordMonitoringEnabled", true);
+        }
+    }
+    
+    /**
+     * 根据配置类型转换值
+     */
+    private Object convertConfigValue(String value, String configType) {
+        if (value == null) {
+            return null;
+        }
+        
+        switch (configType.toUpperCase()) {
+            case "BOOLEAN":
+                return Boolean.parseBoolean(value);
+            case "INTEGER":
+                try {
+                    return Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    return 0;
+                }
+            case "JSON":
+                // 这里可以添加JSON解析逻辑
+                return value;
+            default:
+                return value;
+        }
     }
 
     /**
@@ -363,10 +439,48 @@ public class GroupManagementService {
      */
     @Transactional
     public Map<String, Object> updateGroupSettings(Map<String, Object> settings) {
-        // 这里可以将设置保存到数据库或配置文件
-        // 目前返回更新后的设置
         log.info("更新群组设置: {}", settings);
-        return settings;
+        
+        try {
+            // 保存群组全局设置到SystemConfig表
+            for (Map.Entry<String, Object> entry : settings.entrySet()) {
+                String configKey = "group.settings." + entry.getKey();
+                String configValue = String.valueOf(entry.getValue());
+                
+                // 查找现有配置
+                SystemConfig existingConfig = systemConfigRepository.findByConfigKey(configKey)
+                    .orElse(null);
+                
+                if (existingConfig != null) {
+                    // 更新现有配置
+                    existingConfig.setConfigValue(configValue);
+                    existingConfig.setUpdateTime(LocalDateTime.now());
+                    existingConfig.setUpdaterId(1L); // 默认系统用户
+                    systemConfigRepository.save(existingConfig);
+                } else {
+                    // 创建新配置
+                    SystemConfig newConfig = SystemConfig.builder()
+                        .configKey(configKey)
+                        .configValue(configValue)
+                        .description("群组全局设置: " + entry.getKey())
+                        .configType("STRING")
+                        .enabled(true)
+                        .createTime(LocalDateTime.now())
+                        .updateTime(LocalDateTime.now())
+                        .creatorId(1L)
+                        .updaterId(1L)
+                        .build();
+                    systemConfigRepository.save(newConfig);
+                }
+            }
+            
+            log.info("群组设置保存成功");
+            return settings;
+            
+        } catch (Exception e) {
+            log.error("保存群组设置失败", e);
+            throw new RuntimeException("保存群组设置失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -607,5 +721,16 @@ public class GroupManagementService {
         } else {
             throw new RuntimeException("群组不存在: " + chatRoom);
         }
+    }
+    
+    /**
+     * 根据chatRoom获取网格员ID
+     */
+    public String getGridOfficerIdByChatRoom(String chatRoom) {
+        Optional<GroupManagementStatus> groupOpt = groupStatusRepository.findByChatRoom(chatRoom);
+        if (groupOpt.isPresent()) {
+            return groupOpt.get().getGridOfficerId();
+        }
+        return null;
     }
 }

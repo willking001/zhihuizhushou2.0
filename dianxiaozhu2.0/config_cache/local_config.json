@@ -1,0 +1,11 @@
+{
+  "auto_reply_enabled": true,
+  "forward_enabled": true,
+  "monitor_enabled": true,
+  "sync_interval": 300,
+  "max_offline_messages": 500,
+  "log_level": "INFO",
+  "keywords": "测试,紧急,故障",
+  "forward_target": "测试群组",
+  "last_sync": "2025-08-14T13:02:10.882237"
+}

@@ -32,7 +32,7 @@ const route = useRoute()
 const isCollapse = ref(false)
 const userInfo = ref({
   username: '管理员',
-  avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
+  avatar: '/admin-avatar.svg',
   role: 'admin'
 })
 
@@ -48,16 +48,7 @@ const menuItems = ref([
       { index: '/messages/templates', title: '消息模板' }
     ]
   },
-  {
-    index: '/users',
-    title: '用户管理',
-    icon: User,
-    children: [
-      { index: '/users/list', title: '用户列表' },
-      { index: '/users/grid', title: '网格员管理' },
-      { index: '/users/profile', title: '用户画像' }
-    ]
-  },
+
   {
     index: '/groups',
     title: '群组管理',
@@ -156,7 +147,8 @@ const menuItems = ref([
       { index: '/system/config', title: '系统配置' },
       { index: '/system/monitor', title: '系统监控' },
       { index: '/system/backup', title: '数据备份' },
-      { index: '/system/logs', title: '系统日志' }
+
+      { index: '/system/users', title: '用户管理' }
     ]
   }
 ])

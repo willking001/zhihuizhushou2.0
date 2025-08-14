@@ -1,0 +1,7 @@
+{
+  "test_group": {
+    "group_name": "测试群组",
+    "keywords": "紧急,故障",
+    "enabled": true
+  }
+}

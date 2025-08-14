@@ -71,21 +71,7 @@ export const asyncRoutes: Array<RouteRecordRaw> = [
       }
     ]
   },
-  {
-    path: '/users',
-    component: ModernAdminLayout,
-    redirect: '/users/list',
-    name: 'Users',
-    meta: { title: '用户管理', icon: 'user' },
-    children: [
-      {
-        path: 'list',
-        name: 'users-list',
-        component: () => import('../views/user/UserList.vue'),
-        meta: { title: '用户列表' }
-      }
-    ]
-  },
+
   {
     path: '/keywords',
     component: ModernAdminLayout,
@@ -192,11 +178,12 @@ export const asyncRoutes: Array<RouteRecordRaw> = [
         component: () => import('../views/system/SystemMonitorView.vue'),
         meta: { title: '系统监控' }
       },
+
       {
-        path: 'logs',
-        name: 'system-logs',
-        component: () => import('../views/system/SystemLogsView.vue'),
-        meta: { title: '系统日志' }
+        path: 'users',
+        name: 'system-users',
+        component: () => import('../views/user/UserList.vue'),
+        meta: { title: '用户管理' }
       }
     ]
   },
